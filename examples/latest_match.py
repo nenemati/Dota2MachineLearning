@@ -35,6 +35,10 @@ def insert_Match_Detail(matches):
 		details_bucket.append(details)
 		db.nemaBIG.insert(details)
 
+def return_filtered_matched():
+    data = db.nemaBIG.find({"$and": [{"result.game_mode": { "$nin": [0,6,7,8,9,10,11,14,15,18,19,20,21] }}, {"result.error": {"$exists": 0}} ]});
+
+
 def main():
     # Get all the most recent match played by the player 'acidfoo'
     account_id = [46939344, 75284629]
@@ -42,9 +46,11 @@ def main():
     # Get a list of recent matches for the player
     my_matches_bucket = []
 
-    matchesList = range(1729103401-1000,1729103401)
+    matchesList = range(1729103401-10000,1729103401)
 
-    #Insert match data into Mongo
-    insert_Match_Detail(matchesList)
+    # Insert match data into Mongo
+    # Comment this in to get data into your mongo database
+    # insert_Match_Detail(matchesList)
+    return_filtered_matched()
 
 main()
