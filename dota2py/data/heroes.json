@@ -409,7 +409,7 @@
         {
             "name": "witch_doctor",
             "id": 30,
-            "localized_name": "Witch Doctor",,
+            "localized_name": "Witch Doctor",
             "carry": 0,
             "support": 3,
             "nuker": 2,
