@@ -28,15 +28,6 @@ if not key:
     raise NameError("Please set the DOTA2_API_KEY environment variable")
 api.set_api_key(key)
 
-# Get all the most recent match played by the player 'acidfoo'
-account_id = [46939344, 75284629]
-
-# Get a list of recent matches for the player
-# matches = api.get_match_history(account_id=account_id[0])["result"]["matches"]
-my_matches_bucket = []
-
-matchesList = range(1729103401-1000,1729103401)
-
 def insert_Match_Detail(matches):
 	details_bucket = []
 	for match in matches:
@@ -44,4 +35,22 @@ def insert_Match_Detail(matches):
 		details_bucket.append(details)
 		db.nemaBIG.insert(details)
 
-insert_Match_Detail(matchesList)
+def return_filtered_matched():
+    data = db.nemaBIG.find({"$and": [{"result.game_mode": { "$nin": [0,6,7,8,9,10,11,14,15,18,19,20,21] }}, {"result.error": {"$exists": 0}} ]});
+
+
+def main():
+    # Get all the most recent match played by the player 'acidfoo'
+    account_id = [46939344, 75284629]
+
+    # Get a list of recent matches for the player
+    my_matches_bucket = []
+
+    matchesList = range(1729103401-10000,1729103401)
+
+    # Insert match data into Mongo
+    # Comment this in to get data into your mongo database
+    # insert_Match_Detail(matchesList)
+    return_filtered_matched()
+
+main()
