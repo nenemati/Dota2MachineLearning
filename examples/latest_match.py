@@ -21,6 +21,9 @@ client = MongoClient('localhost', 27017)
 db = client.dotabase
 collection = db.matches
 
+pd.options.display.max_columns = 200
+
+
 # Some path fiddling to make sure we can access the module
 sys.path.append(abspath(join(abspath(dirname(__file__)), "..")))
 
@@ -31,6 +34,8 @@ if not key:
     raise NameError("Please set the DOTA2_API_KEY environment variable")
 api.set_api_key(key)
 
+#with open("heroes.json") as heroes:
+    # something
 def insert_Match_Detail(matches):
 	details_bucket = []
 	for match in matches:
@@ -39,33 +44,52 @@ def insert_Match_Detail(matches):
 		db.nemaBIG.insert(details)
 
 def return_filtered_matched():
-    # data = db.nemaBIG.find({"$and": [{"result.game_mode": { "$nin": [0,6,7,8,9,10,11,14,15,18,19,20,21] }}, {"result.error": {"$exists": 0}} ]})
-    data = db.nemaBIG.find()
-
+    bucket = []
+    #grabbing data from
+    data = db.nemaBIG.find({"$and": [{"result.game_mode": { "$nin": [0,6,7,8,9,10,11,13,14,15,17,18,19,20,21] }}, {"result.error": {"$exists": 0}} ]})
+    # Data is a Cursor object. Need to add to List.
     for d in data:
-        print d
+        bucket.append(d)
+    return bucket
 
-def parse_the_D(raw_data):
-    # Counter for player
-    count = 1
-    
-    # loop through players information 
-    for player_info in raw_data["results"]["players"]:
-      # print player_info
-      elevations["results"]["player_"+ count +"_hero_id"] = player_info["hero_id"]
+def parse_the_df(raw_data):
 
-      count = count + 1
+    for match in raw_data:
+        # Counter for player
+        count = 1
+        # loop through players information
+        del match["_id"]
+        for player_info in match["result"]["players"]:
+          match["result"]["player_"+ str(count) +"_hero_id"] = player_info["hero_id"]
 
-    # Delete players column
-    del elevations["result"]["players"]
-    
+          count = count + 1
+
+        # Delete players column
+        del match["result"]["players"]
+
 
     encodedJson = json.dumps(raw_data)
     data = json.loads(encodedJson)
 
     # Normalize json to work with DataFrame
-    return json_normalize(data['result'])
+    return json_normalize(data)
 
+def calculate_win_rate(hero_id, radiant, dire, radiant_win):
+    if hero_id in radiant and radiant_win:
+        # Win on Radiant side
+        return 1
+    elif hero_id in dire and not radiant_win:
+        # Win on Dire side
+        return 1
+    elif hero_id not in radiant and hero_id not in dire:
+        # Not in game
+        return 0
+    elif hero_id in radiant and not radiant_win:
+        # Radiant loss
+        return -1
+    elif hero_id in dire and radiant_win:
+        # Dire loss
+        return -1
 
 def main():
     # Get all the most recent match played by the player 'acidfoo'
@@ -79,13 +103,49 @@ def main():
     # Insert match data into Mongo
     # Comment the function in to get data into your mongo database
     # insert_Match_Detail(matchesList)
-    
+
     # Get match data from DB into encoded JSON
-    return_filtered_matched()
-    # print raw_data.count()
-    # Get raw dataframe that needs additional manipulation
-    # normalized_dataframe = parse_the_d(raw_data)
+    raw_data = return_filtered_matched()
+
+    # Get raw dataframe that needs additional manipulation aka all our mongo data
+    normalized_dataframe = parse_the_df(raw_data)
+    # Restructure dataframe
+    df = normalized_dataframe[[
+        'result.match_id',
+        'result.radiant_win',
+        'result.player_1_hero_id',
+        'result.player_2_hero_id',
+        'result.player_3_hero_id',
+        'result.player_4_hero_id',
+        'result.player_5_hero_id',
+        'result.player_6_hero_id',
+        'result.player_7_hero_id',
+        'result.player_8_hero_id',
+        'result.player_9_hero_id',
+        'result.player_10_hero_id'
+    ]]
     # print normalized_dataframe
+    for index, row in df.head().iterrows():
+        radiant = [
+            row['result.player_1_hero_id'],
+            row['result.player_2_hero_id'],
+            row['result.player_3_hero_id'],
+            row['result.player_4_hero_id'],
+            row['result.player_5_hero_id']
+        ]
+        dire = [
+            row['result.player_6_hero_id'],
+            row['result.player_7_hero_id'],
+            row['result.player_8_hero_id'],
+            row['result.player_9_hero_id'],
+            row['result.player_10_hero_id']
+        ]
+        for hero_id in range(1, 10):
+            print calculate_win_rate(hero_id, radiant, dire, row['result.radiant_win'])
+            print hero_id
+            print row['result.radiant_win']
+            print row['result.match_id']
+        # print row['result.match_id'], row['result.radiant_win'] +
 
 
 main()
